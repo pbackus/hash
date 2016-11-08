@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define BUCKET_COUNT 32 /* Totally arbitraty */
+#define BUCKET_COUNT 32 /* Totally arbitrary */
 
 struct hash_entry {
 	char *key;
