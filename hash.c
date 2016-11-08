@@ -30,14 +30,14 @@ hash(const char *key)
 	return hash;
 }
 
-/* new: allocate and initialize a new hash
+/* hash_new: allocate and initialize a new hash
  *
- * Public method
+ * Public method.
  */
-static HashTable
-new(void)
+Hash *
+hash_new(void)
 {
-	HashTable h = malloc(sizeof *h);
+	Hash *h = malloc(sizeof *h);
 	if (!h) return NULL;
 
 	for (size_t i = 0; i < BUCKET_COUNT; i++) {
@@ -64,12 +64,12 @@ delete_bucket(struct hash_entry *head)
 	}
 }
 
-/* delete: free all memory associated with a hash
+/* hash_delete: free all memory associated with a hash
  *
  * Public method.
  */
-static void
-delete(HashTable self)
+void
+hash_delete(Hash *self)
 {
 	if (!self) return;
 
@@ -106,12 +106,12 @@ error:
 	return NULL;
 }
 
-/* set: add a key, value pair to a hash
+/* hash_set: add a key, value pair to a hash
  *
  * Public method.
  */
-static void
-set(HashTable self, const char *key, const int value)
+void
+hash_set(Hash *self, const char *key, const int value)
 {
 	size_t i = hash(key) % BUCKET_COUNT;
 	struct hash_entry *entry;
@@ -141,15 +141,15 @@ error:
 	abort();
 }
 
-/* get: search for a key in a hash
+/* hash_get: search for a key in a hash
  *
  * Returns 1 if the key is found, and 0 if not. Additionally, if the key is
  * found and value_out is non-null, the corresponding value is stored there.
  *
  * Public method.
  */
-static int
-get(const HashTable self, const char *key, int *value_out)
+int
+hash_get(const Hash *self, const char *key, int *value_out)
 {
 	size_t i = hash(key) % BUCKET_COUNT;
 	struct hash_entry *entry;
@@ -169,14 +169,14 @@ get(const HashTable self, const char *key, int *value_out)
 	}
 }
 
-/* remove: remove a key and its associated value from a hash
+/* hash_remove: remove a key and its associated value from a hash
  *
  * Also frees the memory associated with the removed pair.
  *
  * Public method.
  */
-static void
-remove(HashTable self, const char *key)
+void
+hash_remove(Hash *self, const char *key)
 {
 	size_t i = hash(key) % BUCKET_COUNT;
 	struct hash_entry *entry, *prev;
@@ -199,25 +199,15 @@ remove(HashTable self, const char *key)
 	}
 }
 
-/* each: iterate over pairs in a hash table
+/* hash_iterate: iterate over pairs in a hash table
  *
  * Public method.
  */
-static void
-each(HashTable self, void (*callback)(const char *, int, void *),
-     void *context)
+void
+hash_iterate(Hash *self, void (*callback)(const char *, int, void *),
+             void *context)
 {
 	for (size_t i = 0; i < BUCKET_COUNT; i++)
 		for (struct hash_entry *e = self->buckets[i]; e; e = e->next)
 			callback(e->key, e->value, context);
 }
-
-/* Externally-visible pointers for public api */
-const struct hash_api Hash = {
-	.new = new,
-	.delete = delete,
-	.set = set,
-	.get = get,
-	.remove = remove,
-	.each = each
-};
