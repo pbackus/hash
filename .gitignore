@@ -1,2 +1,3 @@
 *.o
 hash_test
+*.swp
