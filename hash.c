@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define BUCKET_COUNT 32 /* Totally arbitrary */
+#define INIT_BUCKET_COUNT 32 /* Totally arbitrary */
 
 struct hash_entry {
 	char *key;
@@ -12,7 +12,8 @@ struct hash_entry {
 };
 
 struct hash_table {
-	struct hash_entry *buckets[BUCKET_COUNT];
+	size_t bucket_count;
+	struct hash_entry *buckets[]; /* Flexible array */
 };
 
 /* djb2 hash function
@@ -37,10 +38,12 @@ hash(const char *key)
 Hash *
 hash_new(void)
 {
-	Hash *h = malloc(sizeof *h);
+	Hash *h = malloc(sizeof *h + INIT_BUCKET_COUNT * sizeof h->buckets[0]);
 	if (!h) return NULL;
 
-	for (size_t i = 0; i < BUCKET_COUNT; i++) {
+	h->bucket_count = INIT_BUCKET_COUNT;
+
+	for (size_t i = 0; i < h->bucket_count; i++) {
 		h->buckets[i] = NULL;
 	}
 
@@ -73,7 +76,7 @@ hash_delete(Hash *self)
 {
 	if (!self) return;
 
-	for (size_t i = 0; i < BUCKET_COUNT; i++) {
+	for (size_t i = 0; i < self->bucket_count; i++) {
 		delete_bucket(self->buckets[i]);
 	}
 
@@ -113,7 +116,7 @@ error:
 void
 hash_set(Hash *self, const char *key, const int value)
 {
-	size_t i = hash(key) % BUCKET_COUNT;
+	size_t i = hash(key) % self->bucket_count;
 	struct hash_entry *entry;
 
 	/* Search for key */
@@ -151,7 +154,7 @@ error:
 int
 hash_get(const Hash *self, const char *key, int *value_out)
 {
-	size_t i = hash(key) % BUCKET_COUNT;
+	size_t i = hash(key) % self->bucket_count;
 	struct hash_entry *entry;
 
 	/* Search for key */
@@ -178,7 +181,7 @@ hash_get(const Hash *self, const char *key, int *value_out)
 void
 hash_remove(Hash *self, const char *key)
 {
-	size_t i = hash(key) % BUCKET_COUNT;
+	size_t i = hash(key) % self->bucket_count;
 	struct hash_entry *entry, *prev;
 
 	/* Search for key */
@@ -207,7 +210,7 @@ void
 hash_iterate(Hash *self, void (*callback)(const char *, int, void *),
              void *context)
 {
-	for (size_t i = 0; i < BUCKET_COUNT; i++)
+	for (size_t i = 0; i < self->bucket_count; i++)
 		for (struct hash_entry *e = self->buckets[i]; e; e = e->next)
 			callback(e->key, e->value, context);
 }
