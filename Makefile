@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS= -std=c99 -pedantic -Wall
+CFLAGS= -std=c99 -pedantic -Wall -g
 
 hash_test: hash_test.o hash.o
 
