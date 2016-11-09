@@ -16,7 +16,7 @@ test_insert(void)
 	Hash *h = hash_new();
 	if (!h) { puts("Fatal error: out of memory"); abort(); }
 
-	hash_set(h, "foo", 123);
+	hash_set(&h, "foo", 123);
 
 	int value;
 
@@ -38,7 +38,7 @@ test_retrieve(void)
 	Hash *h = hash_new();
 	if (!h) { puts("Fatal error: out of memory"); abort(); }
 
-	hash_set(h, "foo", 123);
+	hash_set(&h, "foo", 123);
 
 	mu_assert("FAIL test_retrieve: NULL not handled correctly",
 		hash_get(h, "foo", NULL)
@@ -58,8 +58,8 @@ test_update(void)
 	Hash *h = hash_new();
 	if (!h) { puts("Fatal error: out of memory"); abort(); }
 
-	hash_set(h, "foo", 123);
-	hash_set(h, "foo", 456);
+	hash_set(&h, "foo", 123);
+	hash_set(&h, "foo", 456);
 
 	int value;
 
@@ -81,8 +81,8 @@ test_remove(void)
 	Hash *h = hash_new();
 	if (!h) { puts("Fatal error: out of memory"); abort(); }
 
-	hash_set(h, "foo", 123);
-	hash_remove(h, "foo");
+	hash_set(&h, "foo", 123);
+	hash_remove(&h, "foo");
 
 	mu_assert("FAIL test_remove: removed key found",
 		hash_get(h, "foo", NULL) == 0
@@ -110,9 +110,9 @@ test_iterate(void)
 	char output_buf[array_size(possible_result)];
 	char *bufp = output_buf;
 
-	hash_set(h, "foo", 1);
-	hash_set(h, "bar", 2);
-	hash_set(h, "baz", 3);
+	hash_set(&h, "foo", 1);
+	hash_set(&h, "bar", 2);
+	hash_set(&h, "baz", 3);
 
 	hash_iterate(h, write_pair, &bufp);
 	output_buf[array_size(output_buf)] = '\0';
@@ -128,6 +128,103 @@ test_iterate(void)
 }
 
 char *
+test_grow(void)
+{
+	Hash *h = hash_new();
+	if (!h) { puts("Fatal error: out of memory"); abort(); }
+
+	char keybuf[3];
+
+	/* 100 inserts is enough to trigger a rehash */
+	for (int i = 0; i < 100; i++) {
+
+		/* Defensive coding */
+		if (snprintf(buf, array_size(buf), "%d", i) >= array_size(buf)) {
+			buf[array_size(buf) - 1] = '\0';
+		}
+
+		hash_set(&h, buf, i);
+	}
+
+	int value;
+
+	/* Check to make sure everything's still there */
+	for (int i = 0; i < 100; i++) {
+
+		/* Defensive coding */
+		if (snprintf(buf, array_size(buf), "%d", i) >= array_size(buf)) {
+			buf[array_size(buf) - 1] = '\0';
+		}
+
+		mu_assert("FAIL test_grow: key not found",
+			hash_get(h, buf, &value)
+			|| (hash_delete(h), false) /* cleanup */);
+
+		mu_assert("FAIL test_grow: incorrect value returned",
+			value == i
+			|| (hash_delete(h), false) /* cleanup */);
+	}
+
+	hash_delete(h);
+	return NULL;
+}
+
+char *
+test_shrink(void)
+{
+	Hash *h = hash_new();
+	if (!h) { puts("Fatal error: out of memory"); abort(); }
+
+	char keybuf[3];
+
+	/* 100 inserts is enough to trigger a rehash */
+	for (int i = 0; i < 100; i++) {
+
+		/* Defensive coding */
+		if (snprintf(buf, array_size(buf), "%d", i) >= array_size(buf)) {
+			buf[array_size(buf) - 1] = '\0';
+		}
+
+		hash_set(&h, buf, i);
+	}
+
+	/* Remove 90% of entries to trigger another rehash */
+	for (int i = 0; i < 100; i++) {
+		if (i % 10 == 5) continue; /* Keep these ones */
+
+		/* Defensive coding */
+		if (snprintf(buf, array_size(buf), "%d", i) >= array_size(buf)) {
+			buf[array_size(buf) - 1] = '\0';
+		}
+
+		hash_remove(&h, buf);
+	}
+
+	int value;
+
+	/* Check to make sure the ones we kept are still there */
+	for (int i = 0; i < 100; i++) {
+		if (i % 10 != 5) continue;
+
+		/* Defensive coding */
+		if (snprintf(buf, array_size(buf), "%d", i) >= array_size(buf)) {
+			buf[array_size(buf) - 1] = '\0';
+		}
+
+		mu_assert("FAIL test_shrink: key not found",
+			hash_get(h, buf, &value)
+			|| (hash_delete(h), false) /* cleanup */);
+
+		mu_assert("FAIL test_shrink: incorrect value returned",
+			value == i
+			|| (hash_delete(h), false) /* cleanup */);
+	}
+
+	hash_delete(h);
+	return NULL;
+}
+
+char *
 all_tests(void)
 {
 	mu_run_test(test_insert);
@@ -135,6 +232,8 @@ all_tests(void)
 	mu_run_test(test_update);
 	mu_run_test(test_remove);
 	mu_run_test(test_iterate);
+	mu_run_test(test_grow);
+	mu_run_test(test_shrink);
 
 	return NULL;
 }

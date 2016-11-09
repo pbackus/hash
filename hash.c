@@ -5,6 +5,14 @@
 
 #define INIT_BUCKET_COUNT 32 /* Totally arbitrary */
 
+/* Chosen based on these notes from Cornell's data structures course:
+ *   https://www.cs.cornell.edu/Courses/cs312/2008sp/lectures/lec20.html
+ * We're not super concerned with performance, so any value that is basically
+ * sane will do here.
+ */
+#define GROW_THRESHOLD 1.5
+#define SHRINK_THRESHOLD (GROW_THRESHOLD / 4.0)
+
 struct hash_entry {
 	char *key;
 	int value;
@@ -32,24 +40,34 @@ hash(const char *key)
 	return hash;
 }
 
-/* hash_new: allocate and initialize a new hash
+/* make_hash: allocate and initialize a hash table
  *
- * Public method.
+ * Private helper function.
  */
-Hash *
-hash_new(void)
+static Hash *
+make_hash(size_t bucket_count)
 {
-	Hash *h = malloc(sizeof *h + INIT_BUCKET_COUNT * sizeof h->buckets[0]);
+	Hash *h = malloc(sizeof *h + bucket_count * sizeof h->buckets[0]);
 	if (!h) return NULL;
 
 	h->load_factor = 0.0;
-	h->bucket_count = INIT_BUCKET_COUNT;
+	h->bucket_count = bucket_count;
 
 	for (size_t i = 0; i < h->bucket_count; i++) {
 		h->buckets[i] = NULL;
 	}
 
 	return h;
+}
+
+/* hash_new: create a new, empty hash table
+ *
+ * Public method.
+ */
+Hash *
+hash_new(void)
+{
+	return make_hash(INIT_BUCKET_COUNT);
 }
 
 /* delete_bucket: free an entire "chain" of hash entries
@@ -111,13 +129,26 @@ error:
 	return NULL;
 }
 
+/* copy_pair_to: insert (k, v) into the hash given as context
+ *
+ * Callback function for hash_iterate.
+ */
+static void
+copy_pair_to(const char *k, int v, void *context)
+{
+	Hash *h = context;
+	hash_set(&h, k, v);
+}
+
 /* hash_set: add a key, value pair to a hash
  *
  * Public method.
  */
 void
-hash_set(Hash *self, const char *key, const int value)
+hash_set(Hash **selfp, const char *key, const int value)
 {
+	Hash *self = *selfp;
+
 	size_t i = hash(key) % self->bucket_count;
 	struct hash_entry *entry;
 
@@ -138,6 +169,16 @@ hash_set(Hash *self, const char *key, const int value)
 		self->buckets[i] = entry;
 
 		self->load_factor += 1.0 / self->bucket_count;
+
+		/* Rehash if necessary */
+		if (self->load_factor > GROW_THRESHOLD) {
+			Hash *new_self = make_hash(self->bucket_count * 2);
+			hash_iterate(self, copy_pair_to, new_self);
+
+			*selfp = new_self;
+
+			hash_delete(self);
+		}
 	}
 
 	return;
@@ -183,8 +224,10 @@ hash_get(const Hash *self, const char *key, int *value_out)
  * Public method.
  */
 void
-hash_remove(Hash *self, const char *key)
+hash_remove(Hash **selfp, const char *key)
 {
+	Hash *self = *selfp;
+
 	size_t i = hash(key) % self->bucket_count;
 	struct hash_entry *entry, *prev;
 
@@ -201,10 +244,20 @@ hash_remove(Hash *self, const char *key)
 		if (prev) prev->next = entry->next;
 		else self->buckets[i] = entry->next;
 
-		self->load_factor -= 1.0 / self->bucket_count;
-
 		free(entry->key);
 		free(entry);
+
+		self->load_factor -= 1.0 / self->bucket_count;
+
+		/* Rehash if necessary */
+		if (self->load_factor < SHRINK_THRESHOLD) {
+			Hash *new_self = make_hash(self->bucket_count / 2);
+			hash_iterate(self, copy_pair_to, new_self);
+
+			*selfp = new_self;
+
+			hash_delete(self);
+		}
 	}
 }
 
