@@ -12,6 +12,7 @@ struct hash_entry {
 };
 
 struct hash_table {
+	double load_factor;
 	size_t bucket_count;
 	struct hash_entry *buckets[]; /* Flexible array */
 };
@@ -41,6 +42,7 @@ hash_new(void)
 	Hash *h = malloc(sizeof *h + INIT_BUCKET_COUNT * sizeof h->buckets[0]);
 	if (!h) return NULL;
 
+	h->load_factor = 0.0;
 	h->bucket_count = INIT_BUCKET_COUNT;
 
 	for (size_t i = 0; i < h->bucket_count; i++) {
@@ -134,6 +136,8 @@ hash_set(Hash *self, const char *key, const int value)
 
 		entry->next = self->buckets[i];
 		self->buckets[i] = entry;
+
+		self->load_factor += 1.0 / self->bucket_count;
 	}
 
 	return;
@@ -196,6 +200,8 @@ hash_remove(Hash *self, const char *key)
 		/* Key found */
 		if (prev) prev->next = entry->next;
 		else self->buckets[i] = entry->next;
+
+		self->load_factor -= 1.0 / self->bucket_count;
 
 		free(entry->key);
 		free(entry);
