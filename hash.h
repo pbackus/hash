@@ -1,6 +1,7 @@
 #ifndef HASH_H
 #define HASH_H
 
+/* Opaque data type */
 typedef struct hash_table Hash;
 
 /* Constructor and destructor. */

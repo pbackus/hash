@@ -65,7 +65,7 @@ make_hash(size_t bucket_count)
  * Public method.
  */
 Hash *
-hash_new(void)
+hash_new()
 {
 	return make_hash(INIT_BUCKET_COUNT);
 }
@@ -87,7 +87,7 @@ delete_bucket(struct hash_entry *head)
 	}
 }
 
-/* hash_delete: free all memory associated with a hash
+/* hash_delete: free all memory associated with a hash table
  *
  * Public method.
  */
@@ -129,7 +129,7 @@ error:
 	return NULL;
 }
 
-/* copy_pair_to: insert (k, v) into the hash given as context
+/* copy_pair_to: insert (k, v) into the hash table given as "context"
  *
  * Callback function for hash_iterate.
  */
@@ -193,7 +193,8 @@ error:
 /* hash_get: search for a key in a hash
  *
  * Returns 1 if the key is found, and 0 if not. Additionally, if the key is
- * found and value_out is non-null, the corresponding value is stored there.
+ * found and value_out is non-NULL, the corresponding value is stored in the
+ * space it points to.
  *
  * Public method.
  */
@@ -218,7 +219,7 @@ hash_get(const Hash *self, const char *key, int *value_out)
 	}
 }
 
-/* hash_remove: remove a key and its associated value from a hash
+/* hash_remove: remove a key and its associated value from a hash table
  *
  * Also frees the memory associated with the removed pair.
  *

@@ -11,7 +11,7 @@
 int tests_run = 0;
 
 char *
-test_insert(void)
+test_insert()
 {
 	Hash *h = hash_new();
 	if (!h) { puts("Fatal error: out of memory"); abort(); }
@@ -33,7 +33,7 @@ test_insert(void)
 }
 
 char *
-test_retrieve(void)
+test_retrieve()
 {
 	Hash *h = hash_new();
 	if (!h) { puts("Fatal error: out of memory"); abort(); }
@@ -53,7 +53,7 @@ test_retrieve(void)
 }
 
 char *
-test_update(void)
+test_update()
 {
 	Hash *h = hash_new();
 	if (!h) { puts("Fatal error: out of memory"); abort(); }
@@ -76,7 +76,7 @@ test_update(void)
 }
 
 char *
-test_remove(void)
+test_remove()
 {
 	Hash *h = hash_new();
 	if (!h) { puts("Fatal error: out of memory"); abort(); }
@@ -101,7 +101,7 @@ write_pair(const char *k, int v, void *ctx)
 }
 
 char *
-test_iterate(void)
+test_iterate()
 {
 	Hash *h = hash_new();
 	if (!h) { puts("Fatal error: out of memory"); abort(); }
@@ -128,7 +128,7 @@ test_iterate(void)
 }
 
 char *
-test_grow(void)
+test_grow()
 {
 	Hash *h = hash_new();
 	if (!h) { puts("Fatal error: out of memory"); abort(); }
@@ -170,7 +170,7 @@ test_grow(void)
 }
 
 char *
-test_shrink(void)
+test_shrink()
 {
 	Hash *h = hash_new();
 	if (!h) { puts("Fatal error: out of memory"); abort(); }
@@ -225,7 +225,7 @@ test_shrink(void)
 }
 
 char *
-all_tests(void)
+all_tests()
 {
 	mu_run_test(test_insert);
 	mu_run_test(test_retrieve);
