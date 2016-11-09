@@ -173,10 +173,11 @@ hash_set(Hash **selfp, const char *key, const int value)
 		/* Rehash if necessary */
 		if (self->load_factor > GROW_THRESHOLD) {
 			Hash *new_self = make_hash(self->bucket_count * 2);
+			if (!new_self) goto error;
+
 			hash_iterate(self, copy_pair_to, new_self);
 
 			*selfp = new_self;
-
 			hash_delete(self);
 		}
 	}
@@ -252,13 +253,21 @@ hash_remove(Hash **selfp, const char *key)
 		/* Rehash if necessary */
 		if (self->load_factor < SHRINK_THRESHOLD) {
 			Hash *new_self = make_hash(self->bucket_count / 2);
+			if (!new_self) goto error;
+
 			hash_iterate(self, copy_pair_to, new_self);
 
 			*selfp = new_self;
-
 			hash_delete(self);
 		}
 	}
+
+	return;
+
+error:
+	/* Out of memory */
+	/* FIXME: is there a better way to handle this? */
+	abort();
 }
 
 /* hash_iterate: iterate over pairs in a hash table
