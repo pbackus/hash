@@ -133,7 +133,7 @@ test_grow()
 	Hash *h = hash_new();
 	if (!h) { puts("Fatal error: out of memory"); abort(); }
 
-	char keybuf[3];
+	char buf[3];
 
 	/* 100 inserts is enough to trigger a rehash */
 	for (int i = 0; i < 100; i++) {
@@ -175,7 +175,7 @@ test_shrink()
 	Hash *h = hash_new();
 	if (!h) { puts("Fatal error: out of memory"); abort(); }
 
-	char keybuf[3];
+	char buf[3];
 
 	/* 100 inserts is enough to trigger a rehash */
 	for (int i = 0; i < 100; i++) {
