@@ -231,20 +231,19 @@ hash_remove(Hash **selfp, const char *key)
 	Hash *self = *selfp;
 
 	size_t i = hash(key) % self->bucket_count;
-	struct hash_entry *entry, *prev;
+	struct hash_entry **entryp;
 
 	/* Search for key */
-	entry = self->buckets[i];
-	prev = NULL;
-	while (entry && strcmp(key, entry->key) != 0) {
-		prev = entry;
-		entry = entry->next;
+	entryp = &self->buckets[i];
+	while (*entryp && strcmp(key, (*entryp)->key) != 0) {
+		entryp = &(*entryp)->next;
 	}
 
-	if (entry) {
+	if (*entryp) {
 		/* Key found */
-		if (prev) prev->next = entry->next;
-		else self->buckets[i] = entry->next;
+		struct hash_entry *entry = *entryp;
+
+		*entryp = entry->next;
 
 		free(entry->key);
 		free(entry);
