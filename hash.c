@@ -103,19 +103,6 @@ hash_delete(Hash *self)
 	free(self);
 }
 
-/* hash_iterate: iterate over pairs in a hash table
- *
- * Public method.
- */
-void
-hash_iterate(Hash *self, void (*callback)(const char *, int, void *),
-             void *context)
-{
-	for (size_t i = 0; i < self->bucket_count; i++)
-		for (struct hash_entry *e = self->buckets[i]; e; e = e->next)
-			callback(e->key, e->value, context);
-}
-
 /* new_entry: allocate and initialize a new hash_entry structure
  *
  * Private helper function.
@@ -174,6 +161,19 @@ try_set(Hash *self, const char *key, const int value)
 	}
 
 	return 1;
+}
+
+/* hash_iterate: iterate over pairs in a hash table
+ *
+ * Public method.
+ */
+void
+hash_iterate(Hash *self, void (*callback)(const char *, int, void *),
+             void *context)
+{
+	for (size_t i = 0; i < self->bucket_count; i++)
+		for (struct hash_entry *e = self->buckets[i]; e; e = e->next)
+			callback(e->key, e->value, context);
 }
 
 /* Context struct for rehash_callback */
