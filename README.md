@@ -1,9 +1,9 @@
 Simple C Hash Table
 ===================
 
-This is a simple hash table I wrote for use in a class project. It uses strings
-as keys and integers as values. Collisions are resolved using separate chaining
-with linked lists.
+This is a simple hash table I wrote originally for use in a class project. It
+uses strings as keys and integers as values. Collisions are resolved using
+separate chaining with linked lists.
 
 Design goals:
 
