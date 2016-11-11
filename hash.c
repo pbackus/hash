@@ -40,12 +40,12 @@ hash(const char *key)
 	return hash;
 }
 
-/* make_hash: allocate and initialize a hash table
+/* new_hash: allocate and initialize a hash table
  *
  * Private helper function.
  */
 static Hash *
-make_hash(size_t bucket_count)
+new_hash(size_t bucket_count)
 {
 	Hash *h = malloc(sizeof *h + bucket_count * sizeof h->buckets[0]);
 	if (!h) return NULL;
@@ -67,7 +67,7 @@ make_hash(size_t bucket_count)
 Hash *
 hash_new()
 {
-	return make_hash(INIT_BUCKET_COUNT);
+	return new_hash(INIT_BUCKET_COUNT);
 }
 
 /* delete_bucket: free an entire "chain" of hash entries
@@ -101,6 +101,19 @@ hash_delete(Hash *self)
 	}
 
 	free(self);
+}
+
+/* hash_iterate: iterate over pairs in a hash table
+ *
+ * Public method.
+ */
+void
+hash_iterate(Hash *self, void (*callback)(const char *, int, void *),
+             void *context)
+{
+	for (size_t i = 0; i < self->bucket_count; i++)
+		for (struct hash_entry *e = self->buckets[i]; e; e = e->next)
+			callback(e->key, e->value, context);
 }
 
 /* new_entry: allocate and initialize a new hash_entry structure
@@ -166,10 +179,10 @@ try_set(Hash *self, const char *key, const int value)
 /* Context struct for rehash_callback */
 struct rehash_ctx {
 	int success;
-	Hash *dest;
+	Hash *new_self;
 };
 
-/* rehash_callback: try to insert (k, v) into context->dest
+/* rehash_callback: try to insert (k, v) into context->new_self
  *
  * If any of the inserts fail, context->success will be 0 at the end of
  * iteration.
@@ -180,14 +193,14 @@ static void
 rehash_callback(const char *k, int v, void *context)
 {
 	/* Unpack context */
-	Hash *dest = ((struct rehash_ctx *) context)->dest;
+	Hash *new_self = ((struct rehash_ctx *) context)->new_self;
 	int *success = &((struct rehash_ctx*) context)->success;
 
 	/* Attempt the insert and record the result */
-	*success = *success && try_set(dest, k, v);
+	*success = *success && try_set(new_self, k, v);
 }
 
-/* hash_set: add a key, value pair to a hash
+/* hash_set: add a key, value pair to a hash table
  *
  * Public method.
  */
@@ -202,21 +215,21 @@ hash_set(Hash **selfp, const char *key, const int value)
 	if (self->load_factor > GROW_THRESHOLD) {
 		struct rehash_ctx result = {
 			.success = 1,
-			.dest = make_hash(self->bucket_count * 2)
+			.new_self = new_hash(self->bucket_count * 2)
 		};
 
 		/* Defer rehashing if allocation fails */
-		if (!result.dest) return;
+		if (!result.new_self) return;
 
 		hash_iterate(self, rehash_callback, &result);
 
 		/* Defer rehashing if allocation fails */
 		if (!result.success) {
-			free(result.dest);
+			free(result.new_self);
 			return;
 		}
 
-		*selfp = result.dest;
+		*selfp = result.new_self;
 		hash_delete(self);
 	}
 
@@ -293,36 +306,23 @@ hash_remove(Hash **selfp, const char *key)
 	if (self->load_factor < SHRINK_THRESHOLD) {
 		struct rehash_ctx result = {
 			.success = 1,
-			.dest = make_hash(self->bucket_count / 2)
+			.new_self = new_hash(self->bucket_count / 2)
 		};
 
 		/* Defer rehashing if allocation fails */
-		if (!result.dest) return;
+		if (!result.new_self) return;
 
 		hash_iterate(self, rehash_callback, &result);
 
 		/* Defer rehashing if allocation fails */
 		if (!result.success) {
-			free(result.dest);
+			free(result.new_self);
 			return;
 		}
 
-		*selfp = result.dest;
+		*selfp = result.new_self;
 		hash_delete(self);
 	}
 
 	return;
-}
-
-/* hash_iterate: iterate over pairs in a hash table
- *
- * Public method.
- */
-void
-hash_iterate(Hash *self, void (*callback)(const char *, int, void *),
-             void *context)
-{
-	for (size_t i = 0; i < self->bucket_count; i++)
-		for (struct hash_entry *e = self->buckets[i]; e; e = e->next)
-			callback(e->key, e->value, context);
 }
