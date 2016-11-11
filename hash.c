@@ -129,26 +129,15 @@ error:
 	return NULL;
 }
 
-/* copy_pair_to: insert (k, v) into the hash table given as "context"
+/* try_set: attempt to add a key, value pair to a hash table
  *
- * Callback function for hash_iterate.
- */
-static void
-copy_pair_to(const char *k, int v, void *context)
-{
-	Hash *h = context;
-	hash_set(&h, k, v);
-}
-
-/* hash_set: add a key, value pair to a hash
+ * Returns 1 on success, 0 on failure.
  *
- * Public method.
+ * Private helper function.
  */
-void
-hash_set(Hash **selfp, const char *key, const int value)
+static int
+try_set(Hash *self, const char *key, const int value)
 {
-	Hash *self = *selfp;
-
 	size_t i = hash(key) % self->bucket_count;
 	struct hash_entry *entry;
 
@@ -163,23 +152,72 @@ hash_set(Hash **selfp, const char *key, const int value)
 	} else {
 		/* Key not found */
 		entry = new_entry(key, value);
-		if (!entry) goto error;
+		if (!entry) return 0;
 
 		entry->next = self->buckets[i];
 		self->buckets[i] = entry;
 
 		self->load_factor += 1.0 / self->bucket_count;
+	}
 
-		/* Rehash if necessary */
-		if (self->load_factor > GROW_THRESHOLD) {
-			Hash *new_self = make_hash(self->bucket_count * 2);
-			if (!new_self) goto error;
+	return 1;
+}
 
-			hash_iterate(self, copy_pair_to, new_self);
+/* Context struct for rehash_callback */
+struct rehash_ctx {
+	int success;
+	Hash *dest;
+};
 
-			*selfp = new_self;
-			hash_delete(self);
+/* rehash_callback: try to insert (k, v) into context->dest
+ *
+ * If any of the inserts fail, context->success will be 0 at the end of
+ * iteration.
+ *
+ * Callback function for hash_iterate.
+ */
+static void
+rehash_callback(const char *k, int v, void *context)
+{
+	/* Unpack context */
+	Hash *dest = ((struct rehash_ctx *) context)->dest;
+	int *success = &((struct rehash_ctx*) context)->success;
+
+	/* Attempt the insert and record the result */
+	*success = *success && try_set(dest, k, v);
+}
+
+/* hash_set: add a key, value pair to a hash
+ *
+ * Public method.
+ */
+void
+hash_set(Hash **selfp, const char *key, const int value)
+{
+	Hash *self = *selfp;
+
+	if (!try_set(self, key, value)) goto error;
+
+	/* Rehash if necessary */
+	if (self->load_factor > GROW_THRESHOLD) {
+		struct rehash_ctx result = {
+			.success = 1,
+			.dest = make_hash(self->bucket_count * 2)
+		};
+
+		/* Defer rehashing if allocation fails */
+		if (!result.dest) return;
+
+		hash_iterate(self, rehash_callback, &result);
+
+		/* Defer rehashing if allocation fails */
+		if (!result.success) {
+			free(result.dest);
+			return;
 		}
+
+		*selfp = result.dest;
+		hash_delete(self);
 	}
 
 	return;
@@ -249,25 +287,31 @@ hash_remove(Hash **selfp, const char *key)
 		free(entry);
 
 		self->load_factor -= 1.0 / self->bucket_count;
+	}
 
-		/* Rehash if necessary */
-		if (self->load_factor < SHRINK_THRESHOLD) {
-			Hash *new_self = make_hash(self->bucket_count / 2);
-			if (!new_self) goto error;
+	/* Rehash if necessary */
+	if (self->load_factor < SHRINK_THRESHOLD) {
+		struct rehash_ctx result = {
+			.success = 1,
+			.dest = make_hash(self->bucket_count / 2)
+		};
 
-			hash_iterate(self, copy_pair_to, new_self);
+		/* Defer rehashing if allocation fails */
+		if (!result.dest) return;
 
-			*selfp = new_self;
-			hash_delete(self);
+		hash_iterate(self, rehash_callback, &result);
+
+		/* Defer rehashing if allocation fails */
+		if (!result.success) {
+			free(result.dest);
+			return;
 		}
+
+		*selfp = result.dest;
+		hash_delete(self);
 	}
 
 	return;
-
-error:
-	/* Out of memory */
-	/* FIXME: is there a better way to handle this? */
-	abort();
 }
 
 /* hash_iterate: iterate over pairs in a hash table
