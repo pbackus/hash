@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define INIT_BUCKET_COUNT 32 /* Totally arbitrary */
+#define MIN_BUCKET_COUNT 32 /* Totally arbitrary */
 
 /* Chosen based on these notes from Cornell's data structures course:
  *   https://www.cs.cornell.edu/Courses/cs312/2008sp/lectures/lec20.html
@@ -67,7 +67,7 @@ new_hash(size_t bucket_count)
 Hash *
 hash_new()
 {
-	return new_hash(INIT_BUCKET_COUNT);
+	return new_hash(MIN_BUCKET_COUNT);
 }
 
 /* delete_bucket: free an entire "chain" of hash entries
@@ -303,7 +303,9 @@ hash_remove(Hash **selfp, const char *key)
 	}
 
 	/* Rehash if necessary */
-	if (self->load_factor < SHRINK_THRESHOLD) {
+	if (self->load_factor < SHRINK_THRESHOLD &&
+	    self->bucket_count > MIN_BUCKET_COUNT)
+	{
 		struct rehash_ctx result = {
 			.success = 1,
 			.new_self = new_hash(self->bucket_count / 2)
