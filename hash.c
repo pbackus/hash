@@ -225,7 +225,7 @@ hash_set(Hash **selfp, const char *key, const int value)
 
 		/* Defer rehashing if allocation fails */
 		if (!result.success) {
-			free(result.new_self);
+			hash_delete(result.new_self);
 			return;
 		}
 
@@ -318,7 +318,7 @@ hash_remove(Hash **selfp, const char *key)
 
 		/* Defer rehashing if allocation fails */
 		if (!result.success) {
-			free(result.new_self);
+			hash_delete(result.new_self);
 			return;
 		}
 
