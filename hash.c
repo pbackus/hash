@@ -40,12 +40,12 @@ hash(const char *key)
 	return hash;
 }
 
-/* new_hash: allocate and initialize a hash table
+/* make_hash: allocate and initialize a hash table
  *
  * Private helper function.
  */
 static Hash *
-new_hash(size_t bucket_count)
+make_hash(size_t bucket_count)
 {
 	Hash *h = malloc(sizeof *h + bucket_count * sizeof h->buckets[0]);
 	if (!h) return NULL;
@@ -67,7 +67,7 @@ new_hash(size_t bucket_count)
 Hash *
 hash_new()
 {
-	return new_hash(MIN_BUCKET_COUNT);
+	return make_hash(MIN_BUCKET_COUNT);
 }
 
 /* delete_bucket: free an entire "chain" of hash entries
@@ -103,12 +103,12 @@ hash_delete(Hash *self)
 	free(self);
 }
 
-/* new_entry: allocate and initialize a new hash_entry structure
+/* make_entry: allocate and initialize a new hash_entry structure
  *
  * Private helper function.
  */
 static struct hash_entry *
-new_entry(const char *key, const int value)
+make_entry(const char *key, const int value)
 {
 	struct hash_entry *p = NULL;
 
@@ -151,7 +151,7 @@ try_set(Hash *self, const char *key, const int value)
 		entry->value = value;
 	} else {
 		/* Key not found */
-		entry = new_entry(key, value);
+		entry = make_entry(key, value);
 		if (!entry) return 0;
 
 		entry->next = self->buckets[i];
@@ -215,7 +215,7 @@ hash_set(Hash **selfp, const char *key, const int value)
 	if (self->load_factor > GROW_THRESHOLD) {
 		struct rehash_ctx result = {
 			.success = 1,
-			.new_self = new_hash(self->bucket_count * 2)
+			.new_self = make_hash(self->bucket_count * 2)
 		};
 
 		/* Defer rehashing if allocation fails */
@@ -308,7 +308,7 @@ hash_remove(Hash **selfp, const char *key)
 	{
 		struct rehash_ctx result = {
 			.success = 1,
-			.new_self = new_hash(self->bucket_count / 2)
+			.new_self = make_hash(self->bucket_count / 2)
 		};
 
 		/* Defer rehashing if allocation fails */
