@@ -176,13 +176,13 @@ hash_iterate(Hash *self, void (*callback)(const char *, int, void *),
 			callback(e->key, e->value, context);
 }
 
-/* Context struct for rehash_callback */
-struct rehash_ctx {
-	int success;
-	Hash *new_self;
+/* Context struct for resize_callback */
+struct resize_ctx {
+	int success; /* Was the resize successful? */
+	Hash *new_self; /* The resized hash table. */
 };
 
-/* rehash_callback: try to insert (k, v) into context->new_self
+/* resize_callback: try to insert (k, v) into context->new_self
  *
  * If any of the inserts fail, context->success will be 0 at the end of
  * iteration.
@@ -190,14 +190,41 @@ struct rehash_ctx {
  * Callback function for hash_iterate.
  */
 static void
-rehash_callback(const char *k, int v, void *context)
+resize_callback(const char *k, int v, void *context)
 {
 	/* Unpack context */
-	Hash *new_self = ((struct rehash_ctx *) context)->new_self;
-	int *success = &((struct rehash_ctx*) context)->success;
+	Hash *new_self = ((struct resize_ctx *) context)->new_self;
+	int *success = &((struct resize_ctx*) context)->success;
 
 	/* Attempt the insert and record the result */
 	*success = *success && try_set(new_self, k, v);
+}
+
+/* try_resize: attempt to create a hash with new_size buckets and the same
+ * entries as self
+ *
+ * Returns a pointer to the new hash on success, NULL on failure.
+ *
+ * Private helper function.
+ */
+static Hash *
+try_resize(Hash *self, size_t new_size)
+{
+	struct resize_ctx result = {
+		.success = 1,
+		.new_self = make_hash(new_size)
+	};
+
+	if (!result.new_self) return NULL;
+
+	hash_iterate(self, resize_callback, &result);
+
+	if (!result.success) {
+		hash_delete(result.new_self);
+		return NULL;
+	}
+
+	return result.new_self;
 }
 
 /* hash_set: add a key, value pair to a hash table
@@ -213,23 +240,12 @@ hash_set(Hash **selfp, const char *key, const int value)
 
 	/* Rehash if necessary */
 	if (self->load_factor > GROW_THRESHOLD) {
-		struct rehash_ctx result = {
-			.success = 1,
-			.new_self = make_hash(self->bucket_count * 2)
-		};
+		Hash *new_self = try_resize(self, self->bucket_count * 2);
 
-		/* Defer rehashing if allocation fails */
-		if (!result.new_self) return;
+		/* If it didn't work, just keep using the old hash for now. */
+		if (!new_self) return;
 
-		hash_iterate(self, rehash_callback, &result);
-
-		/* Defer rehashing if allocation fails */
-		if (!result.success) {
-			hash_delete(result.new_self);
-			return;
-		}
-
-		*selfp = result.new_self;
+		*selfp = new_self;
 		hash_delete(self);
 	}
 
@@ -306,23 +322,12 @@ hash_remove(Hash **selfp, const char *key)
 	if (self->load_factor < SHRINK_THRESHOLD &&
 	    self->bucket_count > MIN_BUCKET_COUNT)
 	{
-		struct rehash_ctx result = {
-			.success = 1,
-			.new_self = make_hash(self->bucket_count / 2)
-		};
+		Hash *new_self = try_resize(self, self->bucket_count / 2);
 
-		/* Defer rehashing if allocation fails */
-		if (!result.new_self) return;
+		/* If it didn't work, just keep using the old hash for now. */
+		if (!new_self) return;
 
-		hash_iterate(self, rehash_callback, &result);
-
-		/* Defer rehashing if allocation fails */
-		if (!result.success) {
-			hash_delete(result.new_self);
-			return;
-		}
-
-		*selfp = result.new_self;
+		*selfp = new_self;
 		hash_delete(self);
 	}
 
