@@ -41,9 +41,11 @@ hash(const char *key)
 	return hash;
 }
 
-/* make_hash: allocate and initialize a hash table
+/* make_hash: allocate and initialize a hash table.
  *
- * Private helper function.
+ * Returns the created hash table, or NULL on allocation failure.
+ *
+ * Private helper function
  */
 static Hash *
 make_hash(size_t bucket_count)
@@ -61,9 +63,9 @@ make_hash(size_t bucket_count)
 	return h;
 }
 
-/* hash_new: create a new, empty hash table
+/* hash_new: create a new, empty hash table.
  *
- * Public method.
+ * Public method
  */
 Hash *
 hash_new()
@@ -71,9 +73,9 @@ hash_new()
 	return make_hash(MIN_BUCKET_COUNT);
 }
 
-/* delete_bucket: free an entire "chain" of hash entries
+/* delete_bucket: free an entire "chain" of hash entries.
  *
- * Private helper function.
+ * Private helper function
  */
 static void
 delete_bucket(struct hash_entry *head)
@@ -88,9 +90,9 @@ delete_bucket(struct hash_entry *head)
 	}
 }
 
-/* hash_delete: free all memory associated with a hash table
+/* hash_delete: free all memory associated with a hash table.
  *
- * Public method.
+ * Public method
  */
 void
 hash_delete(Hash *self)
@@ -104,9 +106,11 @@ hash_delete(Hash *self)
 	free(self);
 }
 
-/* make_entry: allocate and initialize a new hash_entry structure
+/* make_entry: allocate and initialize a new hash_entry structure.
  *
- * Private helper function.
+ * Returns the created entry, or NULL on allocation failure.
+ *
+ * Private helper function
  */
 static struct hash_entry *
 make_entry(const char *key, const int value)
@@ -130,11 +134,11 @@ error:
 	return NULL;
 }
 
-/* try_set: attempt to add a key, value pair to a hash table
+/* try_set: attempt to add a key-value pair to a hash table.
  *
  * Returns 1 on success, 0 on failure.
  *
- * Private helper function.
+ * Private helper function
  */
 static int
 try_set(Hash *self, const char *key, const int value)
@@ -164,11 +168,11 @@ try_set(Hash *self, const char *key, const int value)
 	return 1;
 }
 
-/* hash_iterate: iterate over pairs in a hash table
+/* hash_iterate: iterate over pairs in a hash table.
  *
  * self must not be NULL.
  *
- * Public method.
+ * Public method
  */
 void
 hash_iterate(Hash *self, void (*callback)(const char *, int, void *),
@@ -184,15 +188,15 @@ hash_iterate(Hash *self, void (*callback)(const char *, int, void *),
 /* Context struct for resize_callback */
 struct resize_ctx {
 	int success; /* Was the resize successful? */
-	Hash *new_self; /* The resized hash table. */
+	Hash *new_self; /* The resized hash table */
 };
 
-/* resize_callback: try to insert (k, v) into context->new_self
+/* resize_callback: try to insert the pair (k, v) into context->new_self.
  *
  * If any of the inserts fail, context->success will be 0 at the end of
  * iteration.
  *
- * Callback function for hash_iterate.
+ * Callback function for hash_iterate
  */
 static void
 resize_callback(const char *k, int v, void *context)
@@ -206,11 +210,11 @@ resize_callback(const char *k, int v, void *context)
 }
 
 /* try_resize: attempt to create a hash with new_size buckets and the same
- * entries as self
+ * entries as self.
  *
  * Returns a pointer to the new hash on success, NULL on failure.
  *
- * Private helper function.
+ * Private helper function
  */
 static Hash *
 try_resize(Hash *self, size_t new_size)
@@ -232,11 +236,11 @@ try_resize(Hash *self, size_t new_size)
 	return result.new_self;
 }
 
-/* hash_set: add a key, value pair to a hash table
+/* hash_set: add a key-value pair to a hash table.
  *
  * *selfp and key must not be NULL.
  *
- * Public method.
+ * Public method
  */
 void
 hash_set(Hash **selfp, const char *key, const int value)
@@ -267,15 +271,15 @@ error:
 	abort();
 }
 
-/* hash_get: search for a key in a hash
+/* hash_get: search for a key in a hash.
  *
  * Returns 1 if the key is found, and 0 if not. Additionally, if the key is
- * found and value_out is non-NULL, the corresponding value is stored in the
- * space it points to.
+ * found and value_out is non-NULL, the corresponding value is stored in
+ * *value_out.
  *
  * self and key must not be NULL.
  *
- * Public method.
+ * Public method
  */
 int
 hash_get(const Hash *self, const char *key, int *value_out)
@@ -301,13 +305,13 @@ hash_get(const Hash *self, const char *key, int *value_out)
 	}
 }
 
-/* hash_remove: remove a key and its associated value from a hash table
+/* hash_remove: remove a key and its associated value from a hash table.
  *
- * Also frees the memory associated with the removed pair.
+ * Also free the memory associated with the removed pair.
  *
  * *selfp and key must not be NULL.
  *
- * Public method.
+ * Public method
  */
 void
 hash_remove(Hash **selfp, const char *key)
