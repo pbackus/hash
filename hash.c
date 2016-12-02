@@ -2,6 +2,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 #define MIN_BUCKET_COUNT 32 /* Totally arbitrary */
 
@@ -165,12 +166,16 @@ try_set(Hash *self, const char *key, const int value)
 
 /* hash_iterate: iterate over pairs in a hash table
  *
+ * self must not be NULL.
+ *
  * Public method.
  */
 void
 hash_iterate(Hash *self, void (*callback)(const char *, int, void *),
              void *context)
 {
+	assert(self);
+
 	for (size_t i = 0; i < self->bucket_count; i++)
 		for (struct hash_entry *e = self->buckets[i]; e; e = e->next)
 			callback(e->key, e->value, context);
@@ -229,11 +234,16 @@ try_resize(Hash *self, size_t new_size)
 
 /* hash_set: add a key, value pair to a hash table
  *
+ * *selfp and key must not be NULL.
+ *
  * Public method.
  */
 void
 hash_set(Hash **selfp, const char *key, const int value)
 {
+	assert(*selfp);
+	assert(key);
+
 	Hash *self = *selfp;
 
 	if (!try_set(self, key, value)) goto error;
@@ -263,11 +273,16 @@ error:
  * found and value_out is non-NULL, the corresponding value is stored in the
  * space it points to.
  *
+ * self and key must not be NULL.
+ *
  * Public method.
  */
 int
 hash_get(const Hash *self, const char *key, int *value_out)
 {
+	assert(self);
+	assert(key);
+
 	size_t i = hash(key) % self->bucket_count;
 	struct hash_entry *entry;
 
@@ -290,11 +305,16 @@ hash_get(const Hash *self, const char *key, int *value_out)
  *
  * Also frees the memory associated with the removed pair.
  *
+ * *selfp and key must not be NULL.
+ *
  * Public method.
  */
 void
 hash_remove(Hash **selfp, const char *key)
 {
+	assert(*selfp);
+	assert(key);
+
 	Hash *self = *selfp;
 
 	size_t i = hash(key) % self->bucket_count;
