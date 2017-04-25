@@ -14,7 +14,7 @@ int hash_get(const Hash *self, const char *key, int *value_out);
 void hash_remove(Hash **selfp, const char *key);
 
 /* Iteration. */
-void hash_iterate(Hash *self, void (*callback)(const char*, int, void *),
+void hash_foreach(Hash *self, void (*callback)(const char*, int, void *),
                   void *context);
 
 #endif

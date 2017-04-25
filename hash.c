@@ -168,14 +168,14 @@ try_set(Hash *self, const char *key, const int value)
 	return 1;
 }
 
-/* hash_iterate: iterate over pairs in a hash table.
+/* hash_foreach: iterate over pairs in a hash table.
  *
  * self must not be NULL.
  *
  * Public method
  */
 void
-hash_iterate(Hash *self, void (*callback)(const char *, int, void *),
+hash_foreach(Hash *self, void (*callback)(const char *, int, void *),
              void *context)
 {
 	assert(self);
@@ -196,7 +196,7 @@ struct resize_ctx {
  * If any of the inserts fail, context->success will be 0 at the end of
  * iteration.
  *
- * Callback function for hash_iterate
+ * Callback function for hash_foreach
  */
 static void
 resize_callback(const char *k, int v, void *context)
@@ -226,7 +226,7 @@ try_resize(Hash *self, size_t new_size)
 
 	if (!result.new_self) return NULL;
 
-	hash_iterate(self, resize_callback, &result);
+	hash_foreach(self, resize_callback, &result);
 
 	if (!result.success) {
 		hash_delete(result.new_self);

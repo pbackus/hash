@@ -101,7 +101,7 @@ write_pair(const char *k, int v, void *ctx)
 }
 
 char *
-test_iterate()
+test_foreach()
 {
 	Hash *h = hash_new();
 	if (!h) { puts("Fatal error: out of memory"); abort(); }
@@ -114,10 +114,10 @@ test_iterate()
 	hash_set(&h, "bar", 2);
 	hash_set(&h, "baz", 3);
 
-	hash_iterate(h, write_pair, &bufp);
+	hash_foreach(h, write_pair, &bufp);
 	output_buf[array_size(output_buf)] = '\0';
 
-	mu_assert("FAIL test_iterate: unexpected result",
+	mu_assert("FAIL test_foreach: unexpected result",
 		(strstr(output_buf, "foo=1") &&
 		 strstr(output_buf, "bar=2") &&
 		 strstr(output_buf, "baz=3"))
@@ -231,7 +231,7 @@ all_tests()
 	mu_run_test(test_retrieve);
 	mu_run_test(test_update);
 	mu_run_test(test_remove);
-	mu_run_test(test_iterate);
+	mu_run_test(test_foreach);
 	mu_run_test(test_grow);
 	mu_run_test(test_shrink);
 
